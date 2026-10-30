@@ -1,0 +1,44 @@
+version: 2
+
+project_name: anigrass
+
+builds:
+  - main: .
+    binary: anigrass
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+
+archives:
+  - formats: [tar.gz]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - README.md
+      - LICENSE
+      - THIRD_PARTY_NOTICES
+
+checksum:
+  name_template: checksums.txt
+
+release:
+  prerelease: auto
+  github:
+    owner: furudenipa
+    name: anigrass
+
+changelog:
+  use: git
+  sort: asc

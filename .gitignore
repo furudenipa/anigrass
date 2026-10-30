@@ -1,0 +1,5 @@
+/anigrass
+/coverage.out
+/dist/
+.env
+.env.*
