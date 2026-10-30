@@ -1,6 +1,6 @@
 Third-party software included in anigrass binaries
 
-github.com/mattn/go-runewidth v0.0.16
+github.com/mattn/go-runewidth v0.0.31
 https://github.com/mattn/go-runewidth
 
 The MIT License (MIT)
@@ -26,12 +26,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 
-github.com/rivo/uniseg v0.2.0
-https://github.com/rivo/uniseg
+github.com/clipperhouse/uax29/v2 v2.2.0
+https://github.com/clipperhouse/uax29/v2
 
 MIT License
 
-Copyright (c) 2019 Oliver Kuederle
+Copyright (c) 2020 Matt Sherman
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
