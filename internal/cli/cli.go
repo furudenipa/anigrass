@@ -26,11 +26,14 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, getenv fu
 	fs.SetOutput(stderr)
 	var username, fromText, toText, timezone, theme, glyph string
 	var total, noColor bool
+	var months, weeks int
 	var display grass.Options
 	fs.StringVar(&username, "user", "", "Annict username (default: authenticated user)")
 	fs.StringVar(&username, "u", "", "Alias for --user")
 	fs.StringVar(&fromText, "from", "", "Start date, inclusive (default: 364 days before --to)")
 	fs.StringVar(&toText, "to", "", "End date, inclusive (default: today)")
+	fs.IntVar(&months, "months", 0, "Last N months through today (1-12); incompatible with --weeks, --from, --to")
+	fs.IntVar(&weeks, "weeks", 0, "Last N weeks through today (1-52); incompatible with --months, --from, --to")
 	fs.StringVar(&timezone, "timezone", "Asia/Tokyo", "IANA timezone for daily counts (default: Asia/Tokyo)")
 	fs.StringVar(&theme, "theme", "dark", "Color theme: dark or light (default: dark)")
 	fs.StringVar(&theme, "t", "dark", "Alias for --theme")
@@ -55,6 +58,19 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, getenv fu
 	if fs.NArg() != 0 {
 		return errors.New("positional arguments are not supported; use --user to specify a username")
 	}
+	specified := make(map[string]bool)
+	fs.Visit(func(f *flag.Flag) { specified[f.Name] = true })
+	if specified["months"] || specified["weeks"] {
+		if specified["from"] || specified["to"] || (specified["months"] && specified["weeks"]) {
+			return errors.New("--months and --weeks cannot be combined with each other or with --from or --to")
+		}
+		if specified["months"] && (months < 1 || months > 12) {
+			return errors.New("--months must be between 1 and 12")
+		}
+		if specified["weeks"] && (weeks < 1 || weeks > 52) {
+			return errors.New("--weeks must be between 1 and 52")
+		}
+	}
 	if theme != "dark" && theme != "light" {
 		return errors.New("--theme must be dark or light")
 	}
@@ -73,6 +89,15 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, getenv fu
 		}
 	}
 	from := to.AddDate(0, 0, -364)
+	if weeks > 0 {
+		from = to.AddDate(0, 0, 1-7*weeks)
+	}
+	if months > 0 {
+		// Clamp to the target month's last day before excluding the boundary day.
+		month := time.Date(to.Year(), to.Month()-time.Month(months), 1, 0, 0, 0, 0, loc)
+		day := min(to.Day(), month.AddDate(0, 1, -1).Day())
+		from = month.AddDate(0, 0, day)
+	}
 	if fromText != "" {
 		from, err = time.ParseInLocation(time.DateOnly, fromText, loc)
 		if err != nil {
@@ -120,6 +145,8 @@ func printHelp(w io.Writer, fs *flag.FlagSet) {
 		[2]string{"user", "-u, --user NAME"},
 		[2]string{"from", "    --from YYYY-MM-DD"},
 		[2]string{"to", "    --to YYYY-MM-DD"},
+		[2]string{"months", "    --months N"},
+		[2]string{"weeks", "    --weeks N"},
 		[2]string{"timezone", "    --timezone ZONE"})
 	group("Appearance",
 		[2]string{"theme", "-t, --theme THEME"},
