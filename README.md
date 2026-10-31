@@ -6,6 +6,8 @@
 
 ## インストール
 
+いずれかの方法でインストールしてください。
+
 ### Go
 
 Go 1.27 以降が必要です。
@@ -23,20 +25,48 @@ go install github.com/furudenipa/anigrass@latest
 [Annict 個人用アクセストークン](https://annict.com/settings/tokens/new)（読み取り専用）を発行し、環境変数に設定して実行します。
 
 ```sh
-export ANNICT_ACCESS_TOKEN="YOUR_TOKEN"
-
-anigrass
-
-# ユーザー指定・合計件数の表示
-anigrass --user frdnp --total
-
-# 期間指定・各ラベルの表示
-anigrass --from 2026-01-01 --to 2026-10-30 --show-weekdays --show-months --show-legend
-
-# ライトテーマ・カスタム文字の指定
-anigrass --theme light --grass '●'
-
+$ export ANNICT_ACCESS_TOKEN="YOUR_TOKEN"
 ```
+
+### デフォルト
+
+```sh
+$ anigrass
+```
+
+![オプションなしの実行結果](docs/demo/default.png)
+
+### ユーザー指定・合計件数の表示
+
+```sh
+$ anigrass --user frdnp --total
+```
+
+![ユーザー指定・合計件数の実行結果](docs/demo/user-total.png)
+
+### 期間指定・各ラベルの表示
+
+```sh
+$ anigrass --from 2026-01-01 --to 2026-10-30 --show-weekdays --show-months --show-legend
+```
+
+![期間指定・各ラベルの実行結果](docs/demo/date-range.png)
+
+### 直近3ヶ月の表示
+
+```sh
+$ anigrass --months 3
+```
+
+![直近3ヶ月の実行結果](docs/demo/months.png)
+
+### ライトテーマ・カスタム文字の指定
+
+```sh
+$ anigrass --theme light --grass '●'
+```
+
+![ライトテーマ・カスタム文字の実行結果](docs/demo/light.png)
 
 ### 主なオプション
 
@@ -45,6 +75,8 @@ anigrass --theme light --grass '●'
 | `-u`, `--user` | Annict ユーザー名 | トークン所有者 |
 | `--from` | 開始日 (`YYYY-MM-DD`) | 終了日の364日前 |
 | `--to` | 終了日 (`YYYY-MM-DD`) | 今日 |
+| `--months` | 直近nヶ月 (`1〜12`、`--weeks`・`--from`・`--to` と併用不可) | 未指定 |
+| `--weeks` | 直近n週間 (`1〜52`、`--months`・`--from`・`--to` と併用不可) | 未指定 |
 | `--timezone` | 集計タイムゾーン | `Asia/Tokyo` |
 | `-t`, `--theme` | テーマ (`dark` / `light`) | `dark` |
 | `-g`, `--grass` | カラー表示時の草文字 | `■` |

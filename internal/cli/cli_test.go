@@ -67,7 +67,7 @@ func TestHelpFlagOrder(t *testing.T) {
 			}
 		}
 	}
-	want := []string{"--user", "--from", "--to", "--timezone", "--theme", "--grass", "--no-color", "--show-user", "--show-range", "--show-months", "--show-weekdays", "--show-legend", "--total", "--help"}
+	want := []string{"--user", "--from", "--to", "--months", "--weeks", "--timezone", "--theme", "--grass", "--no-color", "--show-user", "--show-range", "--show-months", "--show-weekdays", "--show-legend", "--total", "--help"}
 	if !reflect.DeepEqual(flags, want) {
 		t.Fatalf("help flag order = %v; want %v", flags, want)
 	}
@@ -123,6 +123,63 @@ func TestEndToEnd(t *testing.T) {
 				}
 			} else if strings.Count(out.String(), "\n") != 7 {
 				t.Fatalf("default output must contain only seven grass rows: %q", out.String())
+			}
+		})
+	}
+}
+
+func TestRelativePeriodValidation(t *testing.T) {
+	cases := [][]string{
+		{"--months", "0"}, {"--months", "-1"}, {"--months", "13"},
+		{"--weeks", "0"}, {"--weeks", "-1"}, {"--weeks", "53"},
+		{"--months", "abc"}, {"--weeks", "1.5"},
+		{"--months", "1", "--weeks", "1"},
+	}
+	for _, relative := range []string{"--months", "--weeks"} {
+		for _, absolute := range []string{"--from", "--to"} {
+			cases = append(cases, []string{relative, "1", absolute + "="})
+		}
+	}
+	for _, args := range cases {
+		t.Run(strings.Join(args, " "), func(t *testing.T) {
+			var out, stderr bytes.Buffer
+			err := run(context.Background(), args, &out, &stderr, func(string) string { return "" }, time.Now(), &annict.Client{})
+			if err == nil || strings.Contains(err.Error(), "ANNICT_ACCESS_TOKEN") {
+				t.Fatalf("expected period validation error, got %v", err)
+			}
+		})
+	}
+}
+
+func TestRelativePeriods(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, `{"data":{"target":{"username":"alice","records":{"nodes":[],"pageInfo":{"hasNextPage":false}}}}}`)
+	}))
+	defer server.Close()
+	for _, tc := range []struct {
+		name, today, option, n, timezone, want string
+	}{
+		{"week", "2026-11-01T12:00:00Z", "--weeks", "1", "UTC", "2026-10-26 → 2026-11-01"},
+		{"weeks", "2026-11-01T12:00:00Z", "--weeks", "52", "UTC", "2025-11-03 → 2026-11-01"},
+		{"months", "2026-11-01T12:00:00Z", "--months", "3", "UTC", "2026-08-02 → 2026-11-01"},
+		{"month end", "2026-03-31T12:00:00Z", "--months", "1", "UTC", "2026-03-01 → 2026-03-31"},
+		{"leap month", "2024-03-31T12:00:00Z", "--months", "1", "UTC", "2024-03-01 → 2024-03-31"},
+		{"leap year", "2024-02-29T12:00:00Z", "--months", "12", "UTC", "2023-03-01 → 2024-02-29"},
+		{"timezone", "2026-10-31T16:00:00Z", "--weeks", "1", "Asia/Tokyo", "2026-10-26 → 2026-11-01"},
+		{"DST", "2026-03-10T12:00:00Z", "--weeks", "1", "America/New_York", "2026-03-04 → 2026-03-10"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			now, err := time.Parse(time.RFC3339, tc.today)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var out, stderr bytes.Buffer
+			err = run(context.Background(), []string{tc.option, tc.n, "--timezone", tc.timezone, "--show-range"}, &out, &stderr, func(string) string { return "test-token" }, now, &annict.Client{Endpoint: server.URL})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !strings.Contains(out.String(), tc.want) {
+				t.Fatalf("got %q; want range %q", out.String(), tc.want)
 			}
 		})
 	}
